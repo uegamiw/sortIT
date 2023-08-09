@@ -1,0 +1,59 @@
+version: "3.9"
+
+services:
+
+  db:
+    container_name: postgres
+    build:
+      context: .
+      dockerfile: containers/postgres/Dockerfile
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: pg_isready -U "${POSTGRES_USER:-postgres}" || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    env_file:
+      - .env.prod
+
+  app:
+    container_name: app
+    build:
+      context: .
+      dockerfile: containers/django/Dockerfile
+    volumes:
+      - .:/code
+      - ./static:/static
+    expose:
+      - "8000"
+    command: sh -c "/usr/local/bin/entrypoint.sh"
+    env_file:
+      - .env.prod
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    container_name: web
+    build:
+      context: .
+      dockerfile: containers/nginx/Dockerfile
+    restart: always
+    volumes:
+      - ./static:/static
+      - ./media:/media
+      - /etc/letsencrypt:/etc/letsencrypt
+    ports:
+      - "80:80"
+      - "443:443"
+    command: "/bin/sh -c 'while :; do sleep 20d & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+    depends_on:
+      - app
+
+volumes:
+  db_data:
+  static:
