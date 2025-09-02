@@ -4,6 +4,7 @@ from .models import ImageSet, Label, Image, Annotation, User
 from django.db.models import Count
 import csv
 from django.http import HttpResponse
+from django.http import StreamingHttpResponse
 from pathlib import Path
 #from admin_thumbnails.thumbnail import AdminThumbnail
 
@@ -38,41 +39,46 @@ class ImageSetAdmin(admin.ModelAdmin):
 
     def export_as_csv(self, request, queryset):
         """
-        Export all rabeling data for each user by csv
-
+        Export all rabeling data for each user by csv (semi-colon)
         """
-        response = HttpResponse(content_type='text/csv')
+        separator = ";"
+        def generate():
+
+            header_row = ['Image Name'] + [user.username for user in User.objects.all()]
+            yield(separator.join(header_row) + '\n')
+
+            # write data row
+            for image_set in queryset:
+                # get relevant images
+                images = Image.objects.filter(image_set=image_set)
+                for image in images:
+
+                    # get extension of the uploaded image
+                    # the last one is always "jpeg", because all uploaded files are converted to 
+                    # JPG (quality=75) with fixed maximum size, e.g. 700 x 700px square
+                    ext = Path(image.file_path).name.split('.')[-2]
+
+                    row = [Path(image.file_path).stem.split('___')[0] + '.' +  ext]
+
+                    # get relevant annotation
+                    annotations = Annotation.objects.filter(image=image)
+
+                    # ユーザーごとにAnnotationのラベル名を辞書に格納する
+                    annotation_dict = {}
+                    for annotation in annotations:
+                        annotation_dict[annotation.user.username] = annotation.label.name
+
+                    # ユーザーごとにAnnotationのラベル名を書き込む（なければ空白）
+                    for user in User.objects.all():
+                        user_label = annotation_dict.get(user.username, '')
+                        row.append(user_label)
+
+                    yield(separator.join(row) + '\n')
+
+
+        response = StreamingHttpResponse(generate(), content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename="image_set.csv"'
-        writer = csv.writer(response)
-
-        # write header row
-        writer.writerow(['Image Name'] + [user.username for user in User.objects.all()])
-
-        # write data row
-        for image_set in queryset:
-            # get relevant images
-            images = Image.objects.filter(image_set=image_set)
-            for image in images:
-
-                # get extension of the uploaded image
-                # the last one is always "jpeg", because all uploaded files are converted to 
-                # JPG (quality=75) with fixed maximum size, e.g. 700 x 700px square
-                ext = Path(image.file_path).name.split('.')[-2]
-
-                row = [Path(image.file_path).stem.split('___')[0] + '.' +  ext]
-
-                # get relevant annotation
-                annotations = Annotation.objects.filter(image=image)
-
-                # ユーザーごとにAnnotationのラベル名を辞書に格納する
-                annotation_dict = {}
-                for annotation in annotations:
-                    annotation_dict[annotation.user.username] = annotation.label.name
-
-                # ユーザーごとにAnnotationのラベル名を書き込む（なければ空白）
-                for user in User.objects.all():
-                    row.append(annotation_dict.get(user.username, ''))
-                writer.writerow(row)
         return response
+
 
     export_as_csv.short_description = 'Export as CSV'
