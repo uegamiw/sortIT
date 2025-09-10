@@ -8,6 +8,8 @@ from django.http import StreamingHttpResponse
 from pathlib import Path
 #from admin_thumbnails.thumbnail import AdminThumbnail
 
+import datetime
+
 @admin.register(Label)
 class LabelAdmin(admin.ModelAdmin):
     list_display = ['name', 'imageset']
@@ -20,6 +22,32 @@ class ImageAdmin(admin.ModelAdmin):
     list_filter = ['image_set']
 #    readonly_fields = ['image_tag']
 
+def generate_csv_stream(separator = ';', image_set=None):
+    """
+    Generator function to stream CSV data
+    """
+    header_row = ['Image Name'] + [user.username for user in User.objects.all()]
+    yield(separator.join(header_row) + '\n')
+
+    # write data row
+    images = Image.objects.filter(image_set=image_set)
+    for image in images:
+
+        ext = Path(image.file_path).name.split('.')[-2]
+        row = [Path(image.file_path).stem.split('___')[0] + '.' +  ext]
+        annotations = Annotation.objects.filter(image=image)
+
+        annotation_dict = {}
+        for annotation in annotations:
+            annotation_dict[annotation.user.username] = annotation.label.name
+
+        # Write the label name of the Annotation for each user (leave blank if not present)
+        for user in User.objects.all():
+            user_label = annotation_dict.get(user.username, '')
+            row.append(user_label)
+
+        yield(separator.join(row) + '\n')
+
 
 @admin.register(ImageSet)
 class ImageSetAdmin(admin.ModelAdmin):
@@ -31,7 +59,6 @@ class ImageSetAdmin(admin.ModelAdmin):
     image_count.short_description = 'Images Count'
 
     def get_queryset(self, request):
-        # ImageSetモデルにImageの数を注釈する
         queryset = super().get_queryset(request)
         queryset = queryset.annotate(Count('images'))
         return queryset
@@ -40,43 +67,10 @@ class ImageSetAdmin(admin.ModelAdmin):
         """
         Export all rabeling data for each user by csv (semi-colon)
         """
-        separator = ";"
-        def generate():
-
-            header_row = ['Image Name'] + [user.username for user in User.objects.all()]
-            yield(separator.join(header_row) + '\n')
-
-            # write data row
-            for image_set in queryset:
-                # get relevant images
-                images = Image.objects.filter(image_set=image_set)
-                for image in images:
-
-                    # get extension of the uploaded image
-                    # the last one is always "jpeg", because all uploaded files are converted to 
-                    # JPG (quality=75) with fixed maximum size, e.g. 700 x 700px square
-                    ext = Path(image.file_path).name.split('.')[-2]
-
-                    row = [Path(image.file_path).stem.split('___')[0] + '.' +  ext]
-
-                    # get relevant annotation
-                    annotations = Annotation.objects.filter(image=image)
-
-                    # Store the label name of the Annotation for each user in a dictionary
-                    annotation_dict = {}
-                    for annotation in annotations:
-                        annotation_dict[annotation.user.username] = annotation.label.name
-
-                    # Write the label name of the Annotation for each user (leave blank if not present)
-                    for user in User.objects.all():
-                        user_label = annotation_dict.get(user.username, '')
-                        row.append(user_label)
-
-                    yield(separator.join(row) + '\n')
-
-
-        response = StreamingHttpResponse(generate(), content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename="image_set.csv"'
+        csv_generator = generate_csv_stream(separator=';', image_set=queryset[0])
+        response = StreamingHttpResponse(csv_generator, content_type='text/csv')
+        current_datetime = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        response['Content-Disposition'] = f'attachment; filename="image_set{queryset[0]}_{current_datetime}.csv"'
         return response
 
 

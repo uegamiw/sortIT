@@ -3,6 +3,12 @@
 <form action="{% url 'sortimgs:download' %}" method="post" id="download-form">
     {% csrf_token %}
 
+{% if message %}
+<div class="alert alert-warning alert-dismissible fade show m-3" role="alert">
+    {{ message }}
+</div>
+{% endif %}
+
 <div class="row m-2">
     <div class="col-lg-6 col-md-6">
         <div class="form-group">
@@ -41,8 +47,9 @@
 </div>
 
 <div class='row m-3'>
-    <div>
-        <button type='submit' id='download-button' class='btn btn-primary'>Download Images</button>
+    <div class="d-flex gap-3">
+        <button type="submit" id="download-images-button" class="btn btn-primary" name="action" value="download_images">Download Images</button>
+        <button type="submit" id="download-csv-button" class="btn btn-primary" name="action" value="download_csv">Download CSV</button>
     </div>
 </div>
 </form>

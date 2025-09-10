@@ -1,4 +1,5 @@
 
+from django.utils.datastructures import MultiValueDictKeyError
 from django.shortcuts import render, redirect
 from django.conf import settings
 from django.http import FileResponse, HttpResponse
@@ -8,6 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.template.response import TemplateResponse
 from django.urls import reverse
+from django.http import StreamingHttpResponse
 
 from .models import ImageSet, Image, Label, Annotation, User
 from .forms import ImageForm
@@ -18,6 +20,8 @@ import datetime
 import PIL
 from io import BytesIO
 from django.core.files.uploadedfile import InMemoryUploadedFile
+
+from .admin import generate_csv_stream
 
 import os
 import zipfile
@@ -305,61 +309,84 @@ def download(request):
 
     if request.method == 'POST':
         user_id = request.POST['user']
-        imageset_id = request.POST['imageset']
+
+        try:
+            imageset_id = request.POST['imageset']
+            imageset = ImageSet.objects.get(id=imageset_id)
+
+        except MultiValueDictKeyError:
+            users = User.objects.all()
+            imagesets = ImageSet.objects.all()
+
+            context = {
+                'users': users,
+                'imagesets': imagesets,
+                'message': 'Please select an Image Set.',
+            }
+            return render(request, 'sortimgs/download.html', context)
+
+            
         delete = request.POST.get('delete', False)
 
-        user = User.objects.get(id=user_id)
-        imageset = ImageSet.objects.get(id=imageset_id)
-        images = imageset.images.all()
-        labels = imageset.label_set.all()
+        if request.POST.get('action') == 'download_images':
+            user = User.objects.get(id=user_id)
 
-        labeled_images = images.filter(annotations__user=user)
+            print(f"SELCTED IMAGESET: {imageset.name} ========================================")
+            images = imageset.images.all()
+            labels = imageset.label_set.all()
 
-        zip_name = f"{imageset.name}_{user.username}.zip"
-        zip_path = Path(settings.MEDIA_ROOT).joinpath(zip_name)
+            labeled_images = images.filter(annotations__user=user)
 
-        # ZIPファイルを作成する
-        with zipfile.ZipFile(zip_path, 'w') as zip_file:
-            # ラベルごとに画像を分類してZIPファイルに追加する
-            for label in labels:
-                # ラベルに紐づく画像を取得する
-                images_by_label = labeled_images.filter(annotations__label=label)
+            zip_name = f"{imageset.name}_{user.username}.zip"
+            zip_path = Path(settings.MEDIA_ROOT).joinpath(zip_name)
 
-                # 画像をフォルダに追加する
-                for image in images_by_label:
-                    image_filepath = Path(image.file_path)
+            # generate ZIP
+            with zipfile.ZipFile(zip_path, 'w') as zip_file:
+                # For each label, get images linked to the label and add them to the corresponding folder in the ZIP file
+                for label in labels:
+                    # ラベルに紐づく画像を取得する
+                    images_by_label = labeled_images.filter(annotations__label=label)
 
-                    ext = image_filepath.stem.split('.')[-1]
-                    stem_image = image_filepath.stem.split('___')[0]
-                    newname = f"{stem_image}.{ext}"
+                    # 画像をフォルダに追加する
+                    for image in images_by_label:
+                        image_filepath = Path(image.file_path)
 
-                    zip_file.write(image.file_path, Path(f'{imageset.name}_{user.username}').joinpath(label.name).joinpath(newname))
+                        ext = image_filepath.stem.split('.')[-1]
+                        stem_image = image_filepath.stem.split('___')[0]
+                        newname = f"{stem_image}.{ext}"
 
-                    # チェックボックスがオンの場合は、画像をデータベースとサーバーから削除する
-                    if delete:
-                        image.delete()
+                        zip_file.write(image.file_path, Path(f'{imageset.name}_{user.username}').joinpath(label.name).joinpath(newname))
 
-                        try:
-                            os.remove(image_filepath)
-                        except FileNotFoundError:
-                            print(f'File Not found: {image_filepath}')
-                            
+                        # チェックボックスがオンの場合は、画像をデータベースとサーバーから削除する
+                        if delete:
+                            image.delete()
 
-        # ZIPファイルをレスポンスとして返す
-        response = FileResponse(open(zip_path, 'rb'))
-        response['Content-Type'] = 'application/zip'
-        response['Content-Disposition'] = f'attachment; filename="{zip_name}"'
+                            try:
+                                os.remove(image_filepath)
+                            except FileNotFoundError:
+                                print(f'File Not found: {image_filepath}')
+                                
 
-        os.remove(zip_path)
+            # ZIPファイルをレスポンスとして返す
+            response = FileResponse(open(zip_path, 'rb'))
+            response['Content-Type'] = 'application/zip'
+            response['Content-Disposition'] = f'attachment; filename="{zip_name}"'
 
-        return response
+            os.remove(zip_path)
+
+            return response
+
+        elif request.POST.get('action') == 'download_csv':
+            csv_generator = generate_csv_stream(separator=';', image_set=imageset)
+            response = StreamingHttpResponse(csv_generator, content_type='text/csv')
+            current_datetime = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+            response['Content-Disposition'] = f'attachment; filename="image_set_{imageset}_{current_datetime}.csv"'
+            return response
 
     else:
-        # フォームに表示するためのユーザーとImageSetを取得する
         users = User.objects.all()
         imagesets = ImageSet.objects.all()
 
-        # ダウンロードフォームを表示する
         context = {
             'users': users,
             'imagesets': imagesets,
