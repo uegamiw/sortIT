@@ -7,7 +7,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.template.response import TemplateResponse
-
+from django.urls import reverse
 
 from .models import ImageSet, Image, Label, Annotation, User
 from .forms import ImageForm
@@ -40,10 +40,16 @@ class ImageSetListView(LoginRequiredMixin, generic.ListView):
 
 @login_required
 def choose_img_set(request):
-    imagesets = ImageSet.objects.all()
+    try:
+        imagesets = ImageSet.objects.all()
 
-    if not imagesets:
-        return redirect('sortimgs:finish') # ここで別のページにリダイレクトする
+        if not imagesets:
+            return redirect('sortimgs:finish') # ここで別のページにリダイレクトする
+
+    except Exception as e:
+        print(f'Error fetching ImageSets: {e}')
+        return redirect('/admin/sortimgs/imageset/add/')
+
     labels = Label.objects.filter(imageset__in=imagesets).select_related('imageset')
     label_dict = {}
 
@@ -79,12 +85,12 @@ def labeling(request, image_set_id):
     else:
         return redirect('sortimgs:finish')
 
-    # ラベリングの進捗度を計算する
+    # Calculate progress
     total_images = images.count()
     labeled_images = total_images - unlabeled_images.count()
     progress = round(labeled_images / total_images * 100)
 
-    # ラベリングフォームを表示する
+    # Show labeling form
     context = {
         'image': image,
         'labels': labels,
@@ -97,21 +103,21 @@ def labeling(request, image_set_id):
 
 @staff_member_required
 def label_post(request):
-    # ユーザーが選択した画像とラベルを取得する
+    # Get the image and label selected by the user
     image_id = request.POST.get('image')
     label_id = request.POST.get('label')
     if image_id and label_id:
         image = Image.objects.get(id=image_id)
         label = Label.objects.get(id=label_id)
 
-        # Annotationオブジェクトを作成する
+        # Create an Annotation object
         annotation = Annotation(image=image, label=label, user=request.user)
         annotation.save()
 
-        # 同じImageSetにリダイレクトする
+        # Redirect to the same ImageSet
         return redirect('sortimgs:labeling', image.image_set.id)
     else:
-        # if the image or rabel is not specified
+        # if the image or label is not specified
         return HttpResponse('Please select an image and a label.')
 
 
@@ -121,7 +127,7 @@ def sortone(request, image_set_id):
     # get specified image set
     image_set = ImageSet.objects.get(id=image_set_id)
 
-    # ImageSetに属する画像とラベルを取得する
+    # Get images and labels linked to the ImageSet
     images = image_set.images.all()
     labels = image_set.label_set.all()
 
@@ -133,31 +139,31 @@ def sortone(request, image_set_id):
     # count total number of images
     total_images = images.count()
 
-    # ImageSetに紐づけられているラベルのうち、otherでないものを取得する
+    # Get the label linked to the ImageSet that is not "other"
     label = labels.exclude(name='other').first()
 
-    # ImageSetにotherラベルが登録されていない場合は、作成する
+    # Create the "other" label if it is not registered in the ImageSet
     if not labels.filter(name='other').exists():
         other_label = Label.objects.create(imageset=image_set, name='other')
     else:
         other_label = labels.get(name='other')
 
-    # ユーザーがまだソートしていない画像を選ぶ
+    # Choose un-sorted images
     unsorted_images = images.exclude(annotations__user=request.user)
     if unsorted_images:
         # number of images to show
-        n_images = 36 
-        # ランダムにn_images個の画像を選ぶ
+        n_images = 36
+        # Randomly select n_images
         images = random.sample(list(unsorted_images), min(n_images, unsorted_images.count()))
     else:
-        # すべての画像がソート済みの場合は、メッセージを表示する
+        # If all images are sorted, redirect to finish
         return redirect('sortimgs:finish')
 
-    # ソートの進捗度を計算する
+    # Calculate progress
     n_labeled = total_images - unsorted_images.count()
     progress = round(n_labeled / total_images * 100)
 
-    # ソートフォームを表示する
+    # Show sorting form
     context = {
         'images': images,
         'label': label,
@@ -167,7 +173,6 @@ def sortone(request, image_set_id):
         'n_labeled': n_labeled,
     }
     return render(request, 'sortimgs/sortone.html', context)
-
 
 @staff_member_required
 def sort_post(request):
@@ -218,7 +223,7 @@ def write_file(img_dst, jpeg_img):
             dst.write(chunk)
 
 
-# 画像処理を別の同期関数として定義
+
 def process_image(img, image_set_id):
     with BytesIO() as img_io:
         img_io.write(img.read())
@@ -233,6 +238,7 @@ def process_image(img, image_set_id):
             if width > max_size[0] or height > max_size[1]:
                 pil_img.thumbnail(max_size)
 
+            os.makedirs(settings.MEDIA_ROOT, exist_ok=True)
 
             with BytesIO() as output_io:
 
@@ -259,6 +265,7 @@ def process_image(img, image_set_id):
                     img_dst = Path(settings.MEDIA_ROOT).joinpath(fname)
 
                     write_file(img_dst, jpeg_img)
+
                 finally:
                     output_io.close()
 

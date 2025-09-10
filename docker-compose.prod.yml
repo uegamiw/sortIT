@@ -44,6 +44,7 @@ services:
       dockerfile: containers/nginx/Dockerfile
     restart: always
     volumes:
+      - ./containers/nginx/conf.d:/etc/nginx/conf.d
       - ./static:/static
       - ./media:/media
       - /etc/letsencrypt:/etc/letsencrypt

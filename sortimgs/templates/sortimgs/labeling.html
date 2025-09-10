@@ -46,6 +46,13 @@
                 {% for label in labels %}
                     <button type="button" class="btn btn-outline-primary" data-label="{{ label.id }}" accesskey="{{ forloop.counter }}"><span class="num">{{ forloop.counter }}. </span>{{ label.name }}</button>
                 {% endfor %}
+
+                {% if not labels %}
+                    <div class="alert alert-warning" role="alert">
+                        No labels available. Please add labels in the <a href="/admin/sortimgs/label/add/" target="_blank">admin panel</a>.
+
+                    </div>
+                {% endif %}
                 </div>
             </div>
             <input type="hidden" name="label" id="label-input">
@@ -62,22 +69,22 @@
 <style>
     @media (max-width: 768px) {
   .btn-group {
-    display: none; /* ボタングループを非表示にする */
+    display: none; /* Hide button group */
   }
   .panel {
-    display: flex; /* パネルをフレックスボックスにする */
-    flex-direction: column; /* パネル内の要素を縦に並べる */
-    width: 100%; /* パネルの幅をいっぱいにする */
-    height: auto; /* パネルの高さを自動にする */
-    border: none; /* パネルの枠線をなくす */
+    display: flex; /* Make panel a flexbox */
+    flex-direction: column; /* Stack panel elements vertically */
+    width: 100%; /* Make panel full width */
+    height: auto; /* Set panel height to auto */
+    border: none; /* Remove panel border */
   }
   .panel > button {
-    display: block; /* パネル内のボタンを表示する */
-    width: 100%; /* パネル内のボタンの幅をいっぱいにする */
-    height: auto; /* パネル内のボタンの高さを指定する */
-    line-height: 50px; /* パネル内のボタン内のテキストを中央に配置する */
-    text-align: center; /* パネル内のボタン内のテキストを中央に配置する */
-    margin-bottom: 1; /* パネル内のボタン同士の間隔をなくす */
+    display: block; /* Show buttons inside panel */
+    width: 100%; /* Make buttons full width */
+    height: auto; /* Set button height to auto */
+    line-height: 50px; /* Center text vertically in buttons */
+    text-align: center; /* Center text horizontally in buttons */
+    margin-bottom: 1; /* Remove spacing between buttons */
   }
   .num {
     display: none;

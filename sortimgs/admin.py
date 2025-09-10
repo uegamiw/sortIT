@@ -27,7 +27,6 @@ class ImageSetAdmin(admin.ModelAdmin):
     actions = ['export_as_csv']
 
     def image_count(self, obj):
-        # ImageモデルでImageSetが選ばれた数を返す
         return obj.images.count()
     image_count.short_description = 'Images Count'
 
@@ -63,12 +62,12 @@ class ImageSetAdmin(admin.ModelAdmin):
                     # get relevant annotation
                     annotations = Annotation.objects.filter(image=image)
 
-                    # ユーザーごとにAnnotationのラベル名を辞書に格納する
+                    # Store the label name of the Annotation for each user in a dictionary
                     annotation_dict = {}
                     for annotation in annotations:
                         annotation_dict[annotation.user.username] = annotation.label.name
 
-                    # ユーザーごとにAnnotationのラベル名を書き込む（なければ空白）
+                    # Write the label name of the Annotation for each user (leave blank if not present)
                     for user in User.objects.all():
                         user_label = annotation_dict.get(user.username, '')
                         row.append(user_label)
