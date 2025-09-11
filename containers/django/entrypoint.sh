@@ -5,9 +5,9 @@ python manage.py makemigrations --noinput
 python manage.py migrate --noinput --verbosity 2 # set verbosity to 2 for more detailed output
 
 # added for debugging
-# python manage.py makemigrations sortimgs
-# python manage.py migrate sortimgs --noinput --verbosity 2
-# python manage.py showmigrations sortimgs
+python manage.py makemigrations sortIT
+python manage.py migrate sortIT --noinput --verbosity 2
+# python manage.py showmigrations sortIT
 
 echo "DEBUG: $DEBUG"
 

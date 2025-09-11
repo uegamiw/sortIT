@@ -10,7 +10,7 @@
     {% if imageset_list %}
         <ul>
         {% for imageset in imageset_list %}
-            <li><a href="{% url 'sortimgs:img_upload' imageset.id %}">{{ imageset.name }} ({{ imageset.images.count }})</a></li>
+            <li><a href="{% url 'sortIT:img_upload' imageset.id %}">{{ imageset.name }} ({{ imageset.images.count }})</a></li>
         {% endfor %}
         </ul>
     {% else %}

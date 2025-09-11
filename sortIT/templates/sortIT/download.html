@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
-<form action="{% url 'sortimgs:download' %}" method="post" id="download-form">
+<form action="{% url 'sortIT:download' %}" method="post" id="download-form">
     {% csrf_token %}
 
 {% if message %}

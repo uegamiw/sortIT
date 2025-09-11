@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class SortimgsConfig(AppConfig):
+class SortITConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'sortimgs'
+    name = 'sortIT'

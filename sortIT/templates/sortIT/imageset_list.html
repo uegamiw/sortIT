@@ -24,10 +24,10 @@
                 {% endfor %}
                 </ul>
             <span>
-                <a href="{% url 'sortimgs:labeling' imageset.id %}" class="btn btn-secondary"> Select </a>
+                <a href="{% url 'sortIT:labeling' imageset.id %}" class="btn btn-secondary"> Select </a>
             </span>
             <span class="ms-3">
-                <a href="{% url 'sortimgs:img_upload' imageset.id %}" class="btn btn-outline-secondary pull-right"><img src="{%  static  'sortimgs/images/upload.svg' %}" alt="upload"></a>
+                <a href="{% url 'sortIT:img_upload' imageset.id %}" class="btn btn-outline-secondary pull-right"><img src="{%  static  'sortIT/images/upload.svg' %}" alt="upload"></a>
             </span>
         </div>
         </div>

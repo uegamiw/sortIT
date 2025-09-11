@@ -34,7 +34,7 @@
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
   <div class="container-fluid">
 
-    <a class="navbar-brand" href="{% url 'sortimgs:choose_img_set' %}">
+    <a class="navbar-brand" href="{% url 'sortIT:choose_img_set' %}">
       SortIT
     </a>
 
@@ -47,7 +47,7 @@
         {% if user.is_staff %}
 
         <li class="nav-item">
-          <a class="nav-link active" href="{% url 'sortimgs:download' %}"><img src="{% static 'download.svg' %}"> Download</a>
+          <a class="nav-link active" href="{% url 'sortIT:download' %}"><img src="{% static 'download.svg' %}"> Download</a>
         </li>
 
         <li class="nav-item">
@@ -68,7 +68,8 @@
     </div>
 
       <span class="mx-3">
-        <a class="btn btn-outline-secondary" href="{% url 'account:logout' %}">Log out</a>
+        <a class="btn btn-outline-secondary" href="{% url 'account:logout' %}" method="post">Log out</a>
+
       </span>
 
 

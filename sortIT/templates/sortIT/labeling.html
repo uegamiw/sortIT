@@ -4,7 +4,7 @@
 
 <ul>
     {% for is in ImageSet.objects.all %}
-        <li><a href="{% url 'sortimgs:labeling/{{ is.id }}' %}">{{ is.name }}</a></li>
+        <li><a href="{% url 'sortIT:labeling/{{ is.id }}' %}">{{ is.name }}</a></li>
     {% endfor %}
 </ul>
 
@@ -28,12 +28,12 @@
 </div>
 
 <figure class="figure m-3">
-    <img src="{% url 'sortimgs:show_img' image.id %}" alt="{{ image.image_set }}" class="img-fluid rounded">
+    <img src="{% url 'sortIT:show_img' image.id %}" alt="{{ image.image_set }}" class="img-fluid rounded">
     <figcaption class="figure-caption text-end">{{image.id}}</figcaption>
 
 </figure>
 
-<form action="{% url 'sortimgs:label_post' %}" method="post" id="labeling-form">
+<form action="{% url 'sortIT:label_post' %}" method="post" id="labeling-form">
     {% csrf_token %}
 
     <div class="row y-3">
@@ -49,7 +49,7 @@
 
                 {% if not labels %}
                     <div class="alert alert-warning" role="alert">
-                        No labels available. Please add labels in the <a href="/admin/sortimgs/label/add/" target="_blank">admin panel</a>.
+                        No labels available. Please add labels in the <a href="/admin/sortIT/label/add/" target="_blank">admin panel</a>.
 
                     </div>
                 {% endif %}

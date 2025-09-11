@@ -19,8 +19,6 @@ class Login(LoginView):
 class Logout(LogoutView):
     template_name = 'account/logout_done.html'
 
-
-
 # A mixin that allows access only to the user themselves.
 class OnlyYouMixin(UserPassesTestMixin):
     raise_exception = True
@@ -40,7 +38,7 @@ class Signup(generic.CreateView):
     form_class =SignupForm
 
     def form_valid(self, form):
-        user = form.save() # formの情報を保存
+        user = form.save() 
         return redirect('account:signup_done')
 
     def get_context_data(self, **kwargs):

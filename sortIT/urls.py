@@ -3,7 +3,7 @@ from django.urls import path
 from . import views
 
 
-app_name = 'sortimgs'
+app_name = 'sortIT'
 urlpatterns = [
     path("upload_imgs/<int:image_set_id>/", views.image_upload, name='img_upload'),
 

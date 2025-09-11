@@ -29,7 +29,7 @@ import zipfile
 
 class ImageSetListView(LoginRequiredMixin, generic.ListView):
     model = ImageSet
-    template_name = 'sortimgs/imageset_list.html'
+    template_name = 'sortIT/imageset_list.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -48,11 +48,12 @@ def choose_img_set(request):
         imagesets = ImageSet.objects.all()
 
         if not imagesets:
-            return redirect('sortimgs:finish') # ここで別のページにリダイレクトする
+            return redirect('/admin/sortIT/imageset/add/')
+            # return redirect('sortIT:finish') # ここで別のページにリダイレクトする
 
     except Exception as e:
         print(f'Error fetching ImageSets: {e}')
-        return redirect('/admin/sortimgs/imageset/add/')
+        return redirect('/admin/sortIT/imageset/add/')
 
     labels = Label.objects.filter(imageset__in=imagesets).select_related('imageset')
     label_dict = {}
@@ -61,7 +62,7 @@ def choose_img_set(request):
         label_dict.setdefault(label.imageset, []).append(label)
 
     context = {'object_list': imagesets, 'label_dict': label_dict}
-    return render(request, 'sortimgs/imageset_list.html', context)
+    return render(request, 'sortIT/imageset_list.html', context)
 
 
 
@@ -79,7 +80,7 @@ def labeling(request, image_set_id):
     # Check the number of labels linked to the ImageSet
     if labels.count() == 1 or (labels.count() == 2 and labels.filter(name='other').exists()):
         # And Redirect to sortOne View if there is ONLY ONE label other than "other" label
-        return redirect('sortimgs:sortone', image_set_id=image_set_id)
+        return redirect('sortIT:sortone', image_set_id=image_set_id)
 
 
     # Choose un-labeled images randomly
@@ -87,7 +88,7 @@ def labeling(request, image_set_id):
     if unlabeled_images:
         image = random.choice(unlabeled_images)
     else:
-        return redirect('sortimgs:finish')
+        return redirect('sortIT:finish')
 
     # Calculate progress
     total_images = images.count()
@@ -103,7 +104,7 @@ def labeling(request, image_set_id):
         'n_total': total_images,
         'n_labeled': labeled_images,
     }
-    return render(request, 'sortimgs/labeling.html', context)
+    return render(request, 'sortIT/labeling.html', context)
 
 @staff_member_required
 def label_post(request):
@@ -119,7 +120,7 @@ def label_post(request):
         annotation.save()
 
         # Redirect to the same ImageSet
-        return redirect('sortimgs:labeling', image.image_set.id)
+        return redirect('sortIT:labeling', image.image_set.id)
     else:
         # if the image or label is not specified
         return HttpResponse('Please select an image and a label.')
@@ -138,7 +139,7 @@ def sortone(request, image_set_id):
     # Check the number of labels linked to the ImageSet
     if not (labels.count() == 1 or (labels.count() == 2 and labels.filter(name='other').exists())):
         # And Redirect to usual labeling mode View if there are > 2 labels
-        return redirect('sortimgs:labeling', image_set_id=image_set_id)
+        return redirect('sortIT:labeling', image_set_id=image_set_id)
 
     # count total number of images
     total_images = images.count()
@@ -161,7 +162,7 @@ def sortone(request, image_set_id):
         images = random.sample(list(unsorted_images), min(n_images, unsorted_images.count()))
     else:
         # If all images are sorted, redirect to finish
-        return redirect('sortimgs:finish')
+        return redirect('sortIT:finish')
 
     # Calculate progress
     n_labeled = total_images - unsorted_images.count()
@@ -176,7 +177,7 @@ def sortone(request, image_set_id):
         'n_total': total_images,
         'n_labeled': n_labeled,
     }
-    return render(request, 'sortimgs/sortone.html', context)
+    return render(request, 'sortIT/sortone.html', context)
 
 @staff_member_required
 def sort_post(request):
@@ -208,11 +209,11 @@ def sort_post(request):
                 Annotation.objects.create(image=image, label=other_label, user=request.user)
 
         # Redirect to the next page
-        return redirect('sortimgs:sortone', image_set_id=image_set_id)
+        return redirect('sortIT:sortone', image_set_id=image_set_id)
 
 
 def finish(request):
-    return render(request, 'sortimgs/thankyou.html')
+    return render(request, 'sortIT/thankyou.html')
 
 @login_required
 def show_image(request, image_id):
@@ -276,7 +277,7 @@ def process_image(img, image_set_id):
 
 
 
-    # データベース操作を同期化
+    # Synchronize database operations
     image_set = ImageSet.objects.get(id=image_set_id)
     image = Image(image_set=image_set, file_path=img_dst)
     image.save()
@@ -285,7 +286,7 @@ def process_image(img, image_set_id):
 @staff_member_required
 def image_upload(request, image_set_id):
 
-    # データベース操作を同期化
+    # Synchronous processing
     image_set = ImageSet.objects.get(id=image_set_id)
     form = ImageForm()
     if request.method == 'POST':
@@ -293,15 +294,15 @@ def image_upload(request, image_set_id):
         if form.is_valid():
             images = request.FILES.getlist('image')
             for img in images:
-                # 画像処理を同期的に実行
+                # Synchronous processing
                 process_image(img, image_set_id)
-            return redirect('sortimgs:choose_img_set')
+            return redirect('sortIT:choose_img_set')
     else:
         context = {
             'image_set': image_set,
             'form': form,
         }
-        return TemplateResponse(request, 'sortimgs/image_upload.html', context)
+        return TemplateResponse(request, 'sortIT/image_upload.html', context)
 
 
 @staff_member_required
@@ -323,7 +324,7 @@ def download(request):
                 'imagesets': imagesets,
                 'message': 'Please select an Image Set.',
             }
-            return render(request, 'sortimgs/download.html', context)
+            return render(request, 'sortIT/download.html', context)
 
             
         delete = request.POST.get('delete', False)
@@ -344,10 +345,10 @@ def download(request):
             with zipfile.ZipFile(zip_path, 'w') as zip_file:
                 # For each label, get images linked to the label and add them to the corresponding folder in the ZIP file
                 for label in labels:
-                    # ラベルに紐づく画像を取得する
+                    # get images linked to the label
                     images_by_label = labeled_images.filter(annotations__label=label)
 
-                    # 画像をフォルダに追加する
+                    # Add images to the folder
                     for image in images_by_label:
                         image_filepath = Path(image.file_path)
 
@@ -357,7 +358,7 @@ def download(request):
 
                         zip_file.write(image.file_path, Path(f'{imageset.name}_{user.username}').joinpath(label.name).joinpath(newname))
 
-                        # チェックボックスがオンの場合は、画像をデータベースとサーバーから削除する
+                        # If the checkbox is checked, delete the image from the database and server
                         if delete:
                             image.delete()
 
@@ -367,7 +368,7 @@ def download(request):
                                 print(f'File Not found: {image_filepath}')
                                 
 
-            # ZIPファイルをレスポンスとして返す
+            # Return the ZIP file as a response
             response = FileResponse(open(zip_path, 'rb'))
             response['Content-Type'] = 'application/zip'
             response['Content-Disposition'] = f'attachment; filename="{zip_name}"'
@@ -391,4 +392,4 @@ def download(request):
             'users': users,
             'imagesets': imagesets,
         }
-        return render(request, 'sortimgs/download.html', context)
+        return render(request, 'sortIT/download.html', context)

@@ -3,7 +3,7 @@
 {% load static %}
 <ul>
     {% for is in ImageSet.objects.all %}
-        <li><a href="{% url 'sortimgs:labeling/{{ is.id }}' %}">{{ is.name }}</a></li>
+        <li><a href="{% url 'sortIT:labeling/{{ is.id }}' %}">{{ is.name }}</a></li>
     {% endfor %}
 </ul>
 
@@ -29,7 +29,7 @@
 </div>
 </div>
 
-<form action="{% url 'sortimgs:sort_post' %}" method="post" id="sorting-form">
+<form action="{% url 'sortIT:sort_post' %}" method="post" id="sorting-form">
     {% csrf_token %}
 
 <div class="row y-3">
@@ -42,7 +42,7 @@
             {% for image in images %}
             <div class="col">
                 <figure class="figure">
-                    <img src="{% url 'sortimgs:show_img' image.id %}" alt="{{ image.image_set }}" class="img-fluid image imgsortone" data-image="{{ image.id }}">
+                    <img src="{% url 'sortIT:show_img' image.id %}" alt="{{ image.image_set }}" class="img-fluid image imgsortone" data-image="{{ image.id }}">
                 </figure>
             </div>
             {% endfor %}
@@ -60,7 +60,7 @@
 
 <!--
 
-<img src="{% static 'sortimgs/images/sortimg-logo2.png' %}" alt="sample logo">
+<img src="{% static 'sortIT/images/sortimg-logo2.png' %}" alt="sample logo">
 -->
 
 <div class='row m-2'>

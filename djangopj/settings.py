@@ -27,7 +27,7 @@ ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS").split(" ")
 # Application definition
 
 INSTALLED_APPS = [
-    "sortimgs.apps.SortimgsConfig",
+    "sortIT.apps.SortITConfig",
     'account.apps.AccountConfig',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -128,7 +128,7 @@ MEDIA_URL = '/media/'
 
 LOGIN_URL = 'account:login'
 LOGOUT_REDIRECT_URL = 'account:login'
-LOGIN_REDIRECT_URL = 'sortimgs:choose_img_set'
+LOGIN_REDIRECT_URL = 'sortIT:choose_img_set'
 
 CSRF_COOKIE_SECURE = False  # turn on when use https only
 CSRF_COOKIE_HTTPONLY = True
